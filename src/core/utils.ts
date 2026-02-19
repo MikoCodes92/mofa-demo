@@ -1,10 +1,10 @@
-import create from "zustand";
-import { events, Volunteer, Event } from "./mockData";
+import { create } from "zustand";
+import { events, type Volunteer, type Event } from "./mockData";
 
 interface Store {
   events: Event[];
   assignRole: (roleId: string, volunteerId: string) => void;
-  currentVolunteer: Volunteer;
+  currentVolunteer: Volunteer | null;
 }
 
 export const useStore = create<Store>((set) => ({
