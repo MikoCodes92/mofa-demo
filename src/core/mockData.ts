@@ -51,5 +51,4 @@ export const events: Event[] = [
       },
     ],
   },
-  // Add more events as needed
 ];
