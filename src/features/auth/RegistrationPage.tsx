@@ -7,7 +7,6 @@ import {
   ArrowLeftOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
-  SafetyCertificateOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
 

@@ -196,17 +196,6 @@ const styles = {
 };
 
 // ================== ANIMATIONS ==================
-const cardAnimations = `
-  @keyframes borderPulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.8; }
-  }
-  
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 0.8; }
-    50% { transform: scale(1.2); opacity: 1; }
-  }
-`;
 
 export default function VolunteerEventCard({ event, featured = false }: Props) {
   const navigate = useNavigate();

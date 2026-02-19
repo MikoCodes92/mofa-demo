@@ -20,7 +20,6 @@ import {
   BellOutlined,
   SettingOutlined,
   LogoutOutlined,
-  DashboardOutlined,
   UploadOutlined,
   EyeOutlined,
   PlusOutlined,
