@@ -142,7 +142,7 @@ export default function VolunteerLandingPage({ events }: Props) {
         {/* CTA Button */}
         <button
           style={ctaButtonStyle}
-          onClick={() => navigate("/volunteer/register")}
+          onClick={() => navigate("/register/1")}
           onMouseEnter={(e) => {
             if (shouldAnimate) {
               e.currentTarget.style.transform = "scale(1.08) translateY(-3px)";
