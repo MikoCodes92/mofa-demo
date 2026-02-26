@@ -7,6 +7,7 @@ import {
   EyeInvisibleOutlined,
   ArrowLeftOutlined,
   LoginOutlined,
+  CrownOutlined,
 } from "@ant-design/icons";
 
 export default function LoginPage() {
@@ -40,11 +41,26 @@ export default function LoginPage() {
 
     // Simulate login API call
     setTimeout(() => {
+      // Admin credentials
+      if (formData.username === "admin" && formData.password === "admin123") {
+        // Store admin credentials with role
+        localStorage.setItem("username", formData.username);
+        localStorage.setItem("password", formData.password);
+        localStorage.setItem("userRole", "admin");
+
+        console.log("Admin login successful");
+        setIsSubmitting(false);
+        navigate("/admin-dashboard");
+      }
       // Check credentials - Using the credentials from your profile page
-      if (formData.username === "miki@1383" && formData.password === "12345") {
+      else if (
+        formData.username === "miki@1383" &&
+        formData.password === "12345"
+      ) {
         // Store credentials in localStorage
         localStorage.setItem("username", formData.username);
         localStorage.setItem("password", formData.password);
+        localStorage.setItem("userRole", "registered");
 
         console.log("Login successful for registered user");
         setIsSubmitting(false);
@@ -56,6 +72,7 @@ export default function LoginPage() {
         // Store credentials in localStorage
         localStorage.setItem("username", formData.username);
         localStorage.setItem("password", formData.password);
+        localStorage.setItem("userRole", "unregistered");
 
         console.log("Login successful for unregistered user");
         setIsSubmitting(false);
@@ -79,9 +96,14 @@ export default function LoginPage() {
   useEffect(() => {
     const username = localStorage.getItem("username");
     const password = localStorage.getItem("password");
+    const userRole = localStorage.getItem("userRole");
 
     if (username && password) {
-      navigate("/profile");
+      if (userRole === "admin") {
+        navigate("/admin-dashboard");
+      } else {
+        navigate("/profile");
+      }
     }
   }, [navigate]);
 
@@ -310,7 +332,10 @@ export default function LoginPage() {
               <p style={demoHintTextStyle}>
                 <strong>Demo:</strong> miki@1383 / 12345 (registered)
                 <br />
-                or mela@474 / 678910 (new user)
+                mela@474 / 678910 (new user)
+                <br />
+                <strong style={{ color: colors.richGold }}>Admin:</strong> admin
+                / admin123 (administrator)
               </p>
             </div>
           </div>

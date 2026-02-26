@@ -5,6 +5,7 @@ import VolunteerLandingPage from "./features/events/InformationPage";
 import RegistrationPage from "./features/auth/RegistrationPage";
 import LoginPage from "./features/auth/LoginPage"; // Import LoginPage
 import VolunteerProfilePage from "./features/events/VolunteerProfilePage";
+import AdminDashboard from "./features/events/AdminDashboard";
 
 function App() {
   const { events } = useStore();
@@ -19,6 +20,8 @@ function App() {
 
       {/* Registration Page - New user signup */}
       <Route path="/register" element={<RegistrationPage />} />
+
+      <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
       {/* Event-specific Registration Page (with eventId) */}
       <Route path="/register/:eventId" element={<RegistrationPage />} />

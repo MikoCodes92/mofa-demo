@@ -109,6 +109,9 @@ export default function VolunteerLandingPage({ events }: Props) {
           <img
             src="/images/mfa-logo.png"
             alt="Ministry of Foreign Affairs"
+            onClick={() => {
+              window.location.href = "https://mfa.gov.et/";
+            }}
             style={logoStyle}
             onMouseEnter={(e) => {
               if (shouldAnimate) {

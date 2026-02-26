@@ -230,1268 +230,6 @@ const statusConfig = {
   },
 };
 
-export default function VolunteerProfilePage() {
-  const navigate = useNavigate();
-  const [applicant, setApplicant] = useState(registeredUserData);
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "documents" | "interview" | "profile"
-  >("overview");
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isRegistered, setIsRegistered] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [previewDocument, setPreviewDocument] = useState<any>(null);
-  const [uploadModal, setUploadModal] = useState(false);
-  const [uploadData, setUploadData] = useState({
-    type: "",
-    name: "",
-    file: null as File | null,
-  });
-
-  // Form state for unregistered user
-  const [formData, setFormData] = useState({
-    university: "",
-    department: "",
-    year_of_study: "",
-    gpa: "",
-    phone_number: "",
-    date_of_birth: "",
-    motivation_statement: "",
-    additional_languages: [] as string[],
-  });
-
-  useEffect(() => {
-    const username = localStorage.getItem("username");
-    const password = localStorage.getItem("password");
-
-    if (username === "miki@1383" && password === "12345") {
-      setApplicant(registeredUserData);
-      setIsRegistered(true);
-    } else if (username === "mela@474" && password === "678910") {
-      setApplicant(unregisteredUserData);
-      setIsRegistered(false);
-      // Initialize form with existing data
-      setFormData({
-        university: unregisteredUserData.university || "",
-        department: unregisteredUserData.department || "",
-        year_of_study: unregisteredUserData.year_of_study?.toString() || "",
-        gpa: unregisteredUserData.gpa?.toString() || "",
-        phone_number: unregisteredUserData.phone_number || "",
-        date_of_birth: unregisteredUserData.date_of_birth || "",
-        motivation_statement: unregisteredUserData.motivation_statement || "",
-        additional_languages: unregisteredUserData.additional_languages || [
-          "English",
-        ],
-      });
-    } else {
-      navigate("/login");
-    }
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
-
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-
-    return () => clearInterval(timer);
-  }, [navigate]);
-
-  const getStatusConfig = (status: string) => {
-    return (
-      statusConfig[status as keyof typeof statusConfig] ||
-      statusConfig.submitted
-    );
-  };
-
-  const StatusIcon = applicant.status
-    ? getStatusConfig(applicant.status).icon
-    : ClockCircleOutlined;
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const handleDownload = (fileUrl: string, fileName: string) => {
-    const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handlePreview = (doc: any) => {
-    setPreviewDocument(doc);
-  };
-
-  const closePreview = () => {
-    setPreviewDocument(null);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("username");
-    localStorage.removeItem("password");
-    navigate("/login");
-  };
-
-  const handleRegisterNow = () => {
-    setActiveTab("profile");
-    setIsEditing(true);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSaveProfile = () => {
-    // Save profile data
-    const updatedApplicant = {
-      ...applicant,
-      university: formData.university,
-      department: formData.department,
-      year_of_study: parseInt(formData.year_of_study) || null,
-      gpa: parseFloat(formData.gpa) || null,
-      phone_number: formData.phone_number,
-      date_of_birth: formData.date_of_birth,
-      motivation_statement: formData.motivation_statement,
-      additional_languages: formData.additional_languages,
-    };
-    setApplicant(updatedApplicant);
-    setIsEditing(false);
-    alert("✅ Profile information saved successfully!");
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setUploadData({ ...uploadData, file: e.target.files[0] });
-    }
-  };
-
-  const handleUploadDocument = () => {
-    if (!uploadData.type || !uploadData.name || !uploadData.file) {
-      alert("Please fill all fields and select a file");
-      return;
-    }
-
-    // Simulate upload
-    const newDoc = {
-      id: `doc${Date.now()}`,
-      type: uploadData.type,
-      name: uploadData.name,
-      file_url: URL.createObjectURL(uploadData.file),
-      file_type: uploadData.file.type.split("/")[1],
-      is_verified: false,
-      uploaded_at: new Date().toISOString().split("T")[0],
-    };
-
-    const updatedApplicant = {
-      ...applicant,
-      documents: [...applicant.documents, newDoc],
-    };
-    setApplicant(updatedApplicant);
-    setUploadModal(false);
-    setUploadData({ type: "", name: "", file: null });
-    alert("✅ Document uploaded successfully! It will be verified shortly.");
-  };
-
-  const handleDeleteDocument = (docId: string) => {
-    if (window.confirm("Are you sure you want to delete this document?")) {
-      const updatedDocuments = applicant.documents.filter(
-        (d: any) => d.id !== docId,
-      );
-      const updatedApplicant = { ...applicant, documents: updatedDocuments };
-      setApplicant(updatedApplicant);
-    }
-  };
-
-  return (
-    <div style={pageStyle}>
-      {/* Background Pattern */}
-      <div style={backgroundPatternStyle}></div>
-
-      {/* Document Preview Modal */}
-      {previewDocument && (
-        <div style={modalOverlayStyle} onClick={closePreview}>
-          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
-            <div style={modalHeaderStyle}>
-              <h3 style={modalTitleStyle}>{previewDocument.name}</h3>
-              <button style={modalCloseStyle} onClick={closePreview}>
-                ×
-              </button>
-            </div>
-            <div style={modalBodyStyle}>
-              {previewDocument.file_type === "pdf" ? (
-                <iframe
-                  src={previewDocument.file_url}
-                  style={pdfViewerStyle}
-                  title={previewDocument.name}
-                />
-              ) : (
-                <img
-                  src={previewDocument.file_url}
-                  alt={previewDocument.name}
-                  style={imageViewerStyle}
-                />
-              )}
-            </div>
-            <div style={modalFooterStyle}>
-              <button
-                style={downloadButtonStyle}
-                onClick={() =>
-                  handleDownload(previewDocument.file_url, previewDocument.name)
-                }
-              >
-                <DownloadOutlined /> Download
-              </button>
-              <button style={modalCloseBtnStyle} onClick={closePreview}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Upload Document Modal */}
-      {uploadModal && (
-        <div style={modalOverlayStyle} onClick={() => setUploadModal(false)}>
-          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
-            <div style={modalHeaderStyle}>
-              <h3 style={modalTitleStyle}>Upload Document</h3>
-              <button
-                style={modalCloseStyle}
-                onClick={() => setUploadModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div style={modalBodyStyle}>
-              <div style={uploadFormStyle}>
-                <div style={formGroupStyle}>
-                  <label style={formLabelStyle}>Document Type</label>
-                  <select
-                    style={selectStyle}
-                    value={uploadData.type}
-                    onChange={(e) =>
-                      setUploadData({ ...uploadData, type: e.target.value })
-                    }
-                  >
-                    <option value="">Select document type</option>
-                    {documentTypes.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div style={formGroupStyle}>
-                  <label style={formLabelStyle}>Document Name</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    placeholder="e.g., National ID Front"
-                    value={uploadData.name}
-                    onChange={(e) =>
-                      setUploadData({ ...uploadData, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div style={formGroupStyle}>
-                  <label style={formLabelStyle}>Select File</label>
-                  <div style={fileUploadAreaStyle}>
-                    <input
-                      type="file"
-                      id="file-upload"
-                      style={{ display: "none" }}
-                      onChange={handleFileUpload}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
-                    <label htmlFor="file-upload" style={fileUploadLabelStyle}>
-                      <UploadOutlined /> Choose File
-                    </label>
-                    {uploadData.file && (
-                      <span style={fileNameStyle}>{uploadData.file.name}</span>
-                    )}
-                  </div>
-                  <p style={fileHintStyle}>
-                    Accepted formats: PDF, JPG, PNG (Max 5MB)
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div style={modalFooterStyle}>
-              <button style={saveButtonStyle} onClick={handleUploadDocument}>
-                <UploadOutlined /> Upload
-              </button>
-              <button
-                style={cancelButtonStyle}
-                onClick={() => setUploadModal(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Professional Dashboard Header */}
-      <div style={dashboardHeaderStyle}>
-        <div style={headerLeftStyle}>
-          <div style={logoContainerStyle}>
-            <img
-              src="/images/mfa-logo.png"
-              alt="MoFA"
-              style={headerLogoStyle}
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
-            <span style={logoTextStyle}>MoFA Volunteer Portal</span>
-          </div>
-        </div>
-
-        <div style={headerRightStyle}>
-          <div style={headerDateTimeStyle}>
-            <CalendarOutlined
-              style={{ marginRight: 8, color: colors.richGold }}
-            />
-            {formatDate(currentTime)}
-          </div>
-          <button style={headerIconButtonStyle}>
-            <BellOutlined style={headerIconStyle} />
-            {isRegistered && <span style={notificationBadgeStyle}>3</span>}
-          </button>
-          <button style={headerIconButtonStyle}>
-            <SettingOutlined style={headerIconStyle} />
-          </button>
-          <div style={userMenuStyle}>
-            <div style={userAvatarSmallStyle}>
-              {applicant.user.first_name[0]}
-              {applicant.user.last_name[0]}
-            </div>
-            <div style={userInfoSmallStyle}>
-              <div style={userNameSmallStyle}>
-                {applicant.user.first_name} {applicant.user.last_name}
-              </div>
-              <div style={userRoleSmallStyle}>
-                {isRegistered ? "Volunteer Applicant" : "Guest User"}
-              </div>
-            </div>
-            <button
-              style={logoutButtonStyle}
-              onClick={handleLogout}
-              title="Logout"
-            >
-              <LogoutOutlined />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div style={mainContentAreaStyle}>
-        {/* Header */}
-        <div style={headerStyle}>
-          <button style={backNavButtonStyle} onClick={() => navigate("/")}>
-            <ArrowLeftOutlined
-              style={{ fontSize: 20, color: colors.deepBlue }}
-            />
-          </button>
-          <div>
-            <h1 style={headerTitleStyle}>
-              {isRegistered
-                ? "My Application"
-                : "Welcome to MoFA Volunteer Portal"}
-            </h1>
-            <p style={headerSubtitleStyle}>
-              {isRegistered
-                ? "Track your volunteer application status"
-                : "Complete your profile to apply"}
-            </p>
-          </div>
-          <div style={headerSpacerStyle}></div>
-        </div>
-
-        {/* Main Container */}
-        <div style={containerStyle}>
-          {/* Application Number Banner - Only show if registered */}
-          {isRegistered && (
-            <div style={applicationBannerStyle}>
-              <IdcardOutlined
-                style={{
-                  fontSize: 24,
-                  color: colors.richGold,
-                  marginRight: 12,
-                }}
-              />
-              <span style={applicationNumberStyle}>
-                Application #: {applicant.application_number}
-              </span>
-              <div style={statusBadgeStyle}>
-                <StatusIcon style={{ marginRight: 6 }} />
-                {getStatusConfig(applicant.status).label}
-              </div>
-            </div>
-          )}
-
-          {/* Profile Header */}
-          <div style={profileHeaderStyle}>
-            <div style={avatarContainerStyle}>
-              <div style={avatarStyle}>
-                {applicant.user.first_name[0]}
-                {applicant.user.last_name[0]}
-              </div>
-            </div>
-            <div style={profileInfoStyle}>
-              <h2 style={profileNameStyle}>
-                {applicant.user.first_name} {applicant.user.middle_name}{" "}
-                {applicant.user.last_name}
-              </h2>
-              <p style={profileEmailStyle}>
-                <MailOutlined
-                  style={{ marginRight: 8, color: colors.richGold }}
-                />
-                {applicant.user.email}
-              </p>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div style={tabContainerStyle}>
-            <button
-              style={{
-                ...tabStyle,
-                ...(activeTab === "overview" ? activeTabStyle : {}),
-              }}
-              onClick={() => setActiveTab("overview")}
-            >
-              Overview
-            </button>
-            <button
-              style={{
-                ...tabStyle,
-                ...(activeTab === "documents" ? activeTabStyle : {}),
-              }}
-              onClick={() => setActiveTab("documents")}
-            >
-              Documents
-            </button>
-            <button
-              style={{
-                ...tabStyle,
-                ...(activeTab === "interview" ? activeTabStyle : {}),
-              }}
-              onClick={() => setActiveTab("interview")}
-            >
-              Interview
-            </button>
-            {!isRegistered && (
-              <button
-                style={{
-                  ...tabStyle,
-                  ...(activeTab === "profile" ? activeTabStyle : {}),
-                }}
-                onClick={() => setActiveTab("profile")}
-              >
-                <EditOutlined /> Profile
-              </button>
-            )}
-          </div>
-
-          {/* Overview Tab */}
-          {activeTab === "overview" && (
-            <div style={tabContentStyle}>
-              {isRegistered ? (
-                <>
-                  {/* Application Timeline */}
-                  <div style={sectionCardStyle}>
-                    <h3 style={sectionTitleStyle}>
-                      <ClockCircleOutlined
-                        style={{ marginRight: 8, color: colors.richGold }}
-                      />
-                      Application Timeline
-                    </h3>
-                    <div style={timelineStyle}>
-                      {applicant.stages.map((stage, index) => (
-                        <div key={index} style={timelineItemStyle}>
-                          <div style={timelineIconStyle}>
-                            <div
-                              style={{
-                                ...timelineDotStyle,
-                                backgroundColor:
-                                  stage.status === "completed"
-                                    ? colors.successGreen
-                                    : stage.status === "current"
-                                      ? colors.richGold
-                                      : colors.softGray,
-                              }}
-                            ></div>
-                            {index < applicant.stages.length - 1 && (
-                              <div style={timelineLineStyle}></div>
-                            )}
-                          </div>
-                          <div style={timelineContentStyle}>
-                            <div style={timelineHeaderStyle}>
-                              <span style={timelineTitleStyle}>
-                                {stage.name}
-                              </span>
-                              <span style={timelineDateStyle}>
-                                {stage.date}
-                              </span>
-                            </div>
-                            <span style={timelineStatusStyle}>
-                              {stage.status === "completed" && "✓ Completed"}
-                              {stage.status === "current" && "● In Progress"}
-                              {stage.status === "pending" && "○ Pending"}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Personal Information */}
-                  <div style={sectionCardStyle}>
-                    <h3 style={sectionTitleStyle}>
-                      <UserOutlined
-                        style={{ marginRight: 8, color: colors.richGold }}
-                      />
-                      Personal Information
-                    </h3>
-                    <div style={infoGridStyle}>
-                      <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>
-                          <UserOutlined
-                            style={{ marginRight: 6, color: colors.richGold }}
-                          />
-                          Full Name
-                        </span>
-                        <span style={infoValueStyle}>
-                          {applicant.user.first_name}{" "}
-                          {applicant.user.middle_name}{" "}
-                          {applicant.user.last_name}
-                        </span>
-                      </div>
-                      <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>
-                          <MailOutlined
-                            style={{ marginRight: 6, color: colors.richGold }}
-                          />
-                          Email
-                        </span>
-                        <span style={infoValueStyle}>
-                          {applicant.user.email}
-                        </span>
-                      </div>
-                      <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>
-                          <PhoneOutlined
-                            style={{ marginRight: 6, color: colors.richGold }}
-                          />
-                          Phone
-                        </span>
-                        <span style={infoValueStyle}>
-                          {applicant.phone_number}
-                        </span>
-                      </div>
-                      <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>
-                          {applicant.gender === "female" ? (
-                            <WomanOutlined
-                              style={{ marginRight: 6, color: colors.richGold }}
-                            />
-                          ) : (
-                            <ManOutlined
-                              style={{ marginRight: 6, color: colors.richGold }}
-                            />
-                          )}
-                          Gender
-                        </span>
-                        <span style={infoValueStyle}>{applicant.gender}</span>
-                      </div>
-                      <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>
-                          <CalendarOutlined
-                            style={{ marginRight: 6, color: colors.richGold }}
-                          />
-                          Date of Birth
-                        </span>
-                        <span style={infoValueStyle}>
-                          {applicant.date_of_birth}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Academic Information */}
-                  <div style={sectionCardStyle}>
-                    <h3 style={sectionTitleStyle}>
-                      <BookOutlined
-                        style={{ marginRight: 8, color: colors.richGold }}
-                      />
-                      Academic Information
-                    </h3>
-                    <div style={infoGridStyle}>
-                      <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>
-                          <BankOutlined
-                            style={{ marginRight: 6, color: colors.richGold }}
-                          />
-                          University
-                        </span>
-                        <span style={infoValueStyle}>
-                          {applicant.university}
-                        </span>
-                      </div>
-                      <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>
-                          <BookOutlined
-                            style={{ marginRight: 6, color: colors.richGold }}
-                          />
-                          Department
-                        </span>
-                        <span style={infoValueStyle}>
-                          {applicant.department}
-                        </span>
-                      </div>
-                      <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>
-                          <StarOutlined
-                            style={{ marginRight: 6, color: colors.richGold }}
-                          />
-                          Year of Study
-                        </span>
-                        <span style={infoValueStyle}>
-                          Year {applicant.year_of_study}
-                        </span>
-                      </div>
-                      <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>
-                          <StarOutlined
-                            style={{ marginRight: 6, color: colors.richGold }}
-                          />
-                          GPA
-                        </span>
-                        <span style={infoValueStyle}>{applicant.gpa}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Languages */}
-                  <div style={sectionCardStyle}>
-                    <h3 style={sectionTitleStyle}>
-                      <GlobalOutlined
-                        style={{ marginRight: 8, color: colors.richGold }}
-                      />
-                      Languages
-                    </h3>
-                    <div style={languageContainerStyle}>
-                      <div style={languageBadgeStyle}>
-                        <strong>Primary:</strong> {applicant.primary_language}
-                      </div>
-                      {applicant.additional_languages.map((lang, index) => (
-                        <div key={index} style={languageBadgeStyle}>
-                          {lang}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Motivation Statement */}
-                  <div style={sectionCardStyle}>
-                    <h3 style={sectionTitleStyle}>
-                      <FileTextOutlined
-                        style={{ marginRight: 8, color: colors.richGold }}
-                      />
-                      Motivation Statement
-                    </h3>
-                    <p style={motivationStyle}>
-                      {applicant.motivation_statement}
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <div style={welcomeCardStyle}>
-                  <StarOutlined style={welcomeIconStyle} />
-                  <h2 style={welcomeTitleStyle}>
-                    Welcome to MoFA Volunteer Program!
-                  </h2>
-                  <p style={welcomeTextStyle}>
-                    Complete your profile and upload required documents to start
-                    your journey with the Ministry of Foreign Affairs.
-                  </p>
-                  <button
-                    style={getStartedButtonStyle}
-                    onClick={() => setActiveTab("profile")}
-                  >
-                    Get Started{" "}
-                    <ArrowLeftOutlined
-                      style={{ transform: "rotate(180deg)" }}
-                    />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Documents Tab */}
-          {activeTab === "documents" && (
-            <div style={tabContentStyle}>
-              <div style={sectionCardStyle}>
-                <div style={sectionHeaderWithButtonStyle}>
-                  <h3 style={sectionTitleStyle}>
-                    <FileTextOutlined
-                      style={{ marginRight: 8, color: colors.richGold }}
-                    />
-                    {isRegistered ? "Verified Documents" : "My Documents"}
-                  </h3>
-                  {!isRegistered && (
-                    <button
-                      style={uploadButtonStyle}
-                      onClick={() => setUploadModal(true)}
-                    >
-                      <PlusOutlined /> Upload Document
-                    </button>
-                  )}
-                </div>
-
-                {applicant.documents.length === 0 ? (
-                  <div style={emptyDocumentsStyle}>
-                    <FileTextOutlined style={emptyIconStyle} />
-                    <h4 style={emptyTitleStyle}>No Documents Uploaded</h4>
-                    <p style={emptyTextStyle}>
-                      {isRegistered
-                        ? "Your documents are being processed."
-                        : "Upload your documents to complete your application."}
-                    </p>
-                    {!isRegistered && (
-                      <button
-                        style={uploadEmptyButtonStyle}
-                        onClick={() => setUploadModal(true)}
-                      >
-                        <UploadOutlined /> Upload Now
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div style={documentsGridStyle}>
-                    {applicant.documents.map((doc: any, index) => (
-                      <div key={index} style={documentCardStyle}>
-                        <div style={documentCardHeaderStyle}>
-                          <FileTextOutlined style={documentCardIconStyle} />
-                          <div style={documentCardInfoStyle}>
-                            <h4 style={documentCardTitleStyle}>{doc.name}</h4>
-                            <p style={documentCardMetaStyle}>
-                              Uploaded: {doc.uploaded_at || doc.verified_at}
-                            </p>
-                          </div>
-                          {doc.is_verified && (
-                            <span style={verifiedBadgeStyle}>
-                              <CheckCircleOutlined /> Verified
-                            </span>
-                          )}
-                        </div>
-                        <div style={documentCardActionsStyle}>
-                          {isRegistered ? (
-                            <>
-                              <button
-                                style={actionButtonStyle}
-                                onClick={() => handlePreview(doc)}
-                                title="Preview"
-                              >
-                                <EyeOutlined />
-                              </button>
-                              <button
-                                style={actionButtonStyle}
-                                onClick={() =>
-                                  handleDownload(doc.file_url, doc.name)
-                                }
-                                title="Download"
-                              >
-                                <DownloadOutlined />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                style={actionButtonStyle}
-                                onClick={() => handlePreview(doc)}
-                                title="Preview"
-                              >
-                                <EyeOutlined />
-                              </button>
-                              <button
-                                style={actionButtonStyle}
-                                onClick={() =>
-                                  handleDownload(doc.file_url, doc.name)
-                                }
-                                title="Download"
-                              >
-                                <DownloadOutlined />
-                              </button>
-                              <button
-                                style={deleteButtonStyle}
-                                onClick={() => handleDeleteDocument(doc.id)}
-                                title="Delete"
-                              >
-                                <DeleteOutlined />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Interview Tab */}
-          {activeTab === "interview" && (
-            <div style={tabContentStyle}>
-              {isRegistered && applicant.status === "interview_scheduled" ? (
-                <>
-                  {/* Interview Details */}
-                  <div style={sectionCardStyle}>
-                    <h3 style={sectionTitleStyle}>
-                      <CalendarOutlined
-                        style={{ marginRight: 8, color: colors.richGold }}
-                      />
-                      Interview Details
-                    </h3>
-                    <div style={interviewDetailsStyle}>
-                      <div style={interviewDetailItemStyle}>
-                        <span style={interviewDetailLabelStyle}>Date:</span>
-                        <span style={interviewDetailValueStyle}>
-                          {applicant.interview.date}
-                        </span>
-                      </div>
-                      <div style={interviewDetailItemStyle}>
-                        <span style={interviewDetailLabelStyle}>Time:</span>
-                        <span style={interviewDetailValueStyle}>
-                          {applicant.interview.time}
-                        </span>
-                      </div>
-                      <div style={interviewDetailItemStyle}>
-                        <span style={interviewDetailLabelStyle}>Duration:</span>
-                        <span style={interviewDetailValueStyle}>
-                          {applicant.interview.duration}
-                        </span>
-                      </div>
-                      <div style={interviewDetailItemStyle}>
-                        <span style={interviewDetailLabelStyle}>Location:</span>
-                        <span style={interviewDetailValueStyle}>
-                          {applicant.interview.location}
-                        </span>
-                      </div>
-                      <div style={interviewDetailItemStyle}>
-                        <span style={interviewDetailLabelStyle}>Format:</span>
-                        <span style={interviewDetailValueStyle}>
-                          {applicant.interview.format}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* What to Bring */}
-                  <div style={sectionCardStyle}>
-                    <h3 style={sectionTitleStyle}>
-                      <FileTextOutlined
-                        style={{ marginRight: 8, color: colors.richGold }}
-                      />
-                      What to Bring
-                    </h3>
-                    <ul style={listStyle}>
-                      {applicant.interview.what_to_bring.map((item, index) => (
-                        <li key={index} style={listItemStyle}>
-                          <CheckCircleOutlined
-                            style={{
-                              color: colors.richGold,
-                              marginRight: 12,
-                            }}
-                          />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Preparation Tips */}
-                  <div style={sectionCardStyle}>
-                    <h3 style={sectionTitleStyle}>
-                      <StarOutlined
-                        style={{ marginRight: 8, color: colors.richGold }}
-                      />
-                      Preparation Tips
-                    </h3>
-                    <ul style={listStyle}>
-                      {applicant.interview.preparation_tips.map(
-                        (tip, index) => (
-                          <li key={index} style={listItemStyle}>
-                            <CheckCircleOutlined
-                              style={{
-                                color: colors.richGold,
-                                marginRight: 12,
-                              }}
-                            />
-                            {tip}
-                          </li>
-                        ),
-                      )}
-                    </ul>
-                  </div>
-                </>
-              ) : (
-                <div style={emptyStateStyle}>
-                  <CalendarOutlined
-                    style={{
-                      fontSize: 48,
-                      color: colors.mediumGray,
-                      marginBottom: 16,
-                    }}
-                  />
-                  <h3 style={emptyStateTitleStyle}>No Interview Scheduled</h3>
-                  <p style={emptyStateTextStyle}>
-                    {isRegistered
-                      ? "Your application is currently under review. You'll be notified when an interview is scheduled."
-                      : "Complete your profile and submit your application to be considered for interviews."}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Profile Tab (for unregistered users) */}
-          {activeTab === "profile" && !isRegistered && (
-            <div style={tabContentStyle}>
-              <div style={sectionCardStyle}>
-                <div style={sectionHeaderWithButtonStyle}>
-                  <h3 style={sectionTitleStyle}>
-                    <UserOutlined
-                      style={{ marginRight: 8, color: colors.richGold }}
-                    />
-                    Complete Your Profile
-                  </h3>
-                  {!isEditing ? (
-                    <button
-                      style={editButtonStyle}
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <EditOutlined /> Edit Profile
-                    </button>
-                  ) : (
-                    <button style={saveButtonStyle} onClick={handleSaveProfile}>
-                      <SaveOutlined /> Save Profile
-                    </button>
-                  )}
-                </div>
-
-                <div style={profileFormStyle}>
-                  <div style={formRowStyle}>
-                    <div style={formGroupStyle}>
-                      <label style={formLabelStyle}>University *</label>
-                      <input
-                        type="text"
-                        name="university"
-                        style={inputStyle}
-                        value={formData.university}
-                        onChange={handleInputChange}
-                        disabled={!isEditing}
-                        placeholder="Enter your university"
-                      />
-                    </div>
-                    <div style={formGroupStyle}>
-                      <label style={formLabelStyle}>Department *</label>
-                      <input
-                        type="text"
-                        name="department"
-                        style={inputStyle}
-                        value={formData.department}
-                        onChange={handleInputChange}
-                        disabled={!isEditing}
-                        placeholder="Enter your department"
-                      />
-                    </div>
-                  </div>
-
-                  <div style={formRowStyle}>
-                    <div style={formGroupStyle}>
-                      <label style={formLabelStyle}>Year of Study</label>
-                      <select
-                        name="year_of_study"
-                        style={selectStyle}
-                        value={formData.year_of_study}
-                        onChange={handleInputChange}
-                        disabled={!isEditing}
-                      >
-                        <option value="">Select year</option>
-                        <option value="1">Year 1</option>
-                        <option value="2">Year 2</option>
-                        <option value="3">Year 3</option>
-                        <option value="4">Year 4</option>
-                        <option value="5">Year 5+</option>
-                      </select>
-                    </div>
-                    <div style={formGroupStyle}>
-                      <label style={formLabelStyle}>GPA</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="gpa"
-                        style={inputStyle}
-                        value={formData.gpa}
-                        onChange={handleInputChange}
-                        disabled={!isEditing}
-                        placeholder="e.g., 3.75"
-                      />
-                    </div>
-                  </div>
-
-                  <div style={formRowStyle}>
-                    <div style={formGroupStyle}>
-                      <label style={formLabelStyle}>Phone Number *</label>
-                      <input
-                        type="tel"
-                        name="phone_number"
-                        style={inputStyle}
-                        value={formData.phone_number}
-                        onChange={handleInputChange}
-                        disabled={!isEditing}
-                        placeholder="+251 912 345 678"
-                      />
-                    </div>
-                    <div style={formGroupStyle}>
-                      <label style={formLabelStyle}>Date of Birth</label>
-                      <input
-                        type="date"
-                        name="date_of_birth"
-                        style={inputStyle}
-                        value={formData.date_of_birth}
-                        onChange={handleInputChange}
-                        disabled={!isEditing}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={formGroupStyle}>
-                    <label style={formLabelStyle}>Motivation Statement *</label>
-                    <textarea
-                      name="motivation_statement"
-                      style={textareaStyle}
-                      rows={5}
-                      value={formData.motivation_statement}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      placeholder="Tell us why you want to volunteer with the Ministry of Foreign Affairs..."
-                    />
-                  </div>
-
-                  <div style={formGroupStyle}>
-                    <label style={formLabelStyle}>Additional Languages</label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={formData.additional_languages
-                        .filter((l) => l !== "English")
-                        .join(", ")}
-                      onChange={(e) => {
-                        const langs = e.target.value
-                          .split(",")
-                          .map((l) => l.trim())
-                          .filter((l) => l);
-                        setFormData({
-                          ...formData,
-                          additional_languages: ["English", ...langs],
-                        });
-                      }}
-                      disabled={!isEditing}
-                      placeholder="French, Arabic, etc. (comma separated)"
-                    />
-                  </div>
-
-                  {!isEditing && (
-                    <div style={formMessageStyle}>
-                      <CheckCircleOutlined
-                        style={{ color: colors.richGold, marginRight: 8 }}
-                      />
-                      Click "Edit Profile" to update your information
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Document Upload Section */}
-              <div style={sectionCardStyle}>
-                <div style={sectionHeaderWithButtonStyle}>
-                  <h3 style={sectionTitleStyle}>
-                    <FileTextOutlined
-                      style={{ marginRight: 8, color: colors.richGold }}
-                    />
-                    Required Documents
-                  </h3>
-                  <button
-                    style={uploadButtonStyle}
-                    onClick={() => setUploadModal(true)}
-                  >
-                    <PlusOutlined /> Add Document
-                  </button>
-                </div>
-
-                <div style={requiredDocsListStyle}>
-                  <div style={requiredDocItemStyle}>
-                    <CheckCircleOutlined
-                      style={{
-                        color: applicant.documents.some((d) => d.type === "id")
-                          ? colors.successGreen
-                          : colors.mediumGray,
-                      }}
-                    />
-                    <span>National ID / Passport</span>
-                    {applicant.documents.some((d) => d.type === "id") && (
-                      <span style={docUploadedStyle}>Uploaded</span>
-                    )}
-                  </div>
-                  <div style={requiredDocItemStyle}>
-                    <CheckCircleOutlined
-                      style={{
-                        color: applicant.documents.some(
-                          (d) => d.type === "transcript",
-                        )
-                          ? colors.successGreen
-                          : colors.mediumGray,
-                      }}
-                    />
-                    <span>Academic Transcript</span>
-                    {applicant.documents.some(
-                      (d) => d.type === "transcript",
-                    ) && <span style={docUploadedStyle}>Uploaded</span>}
-                  </div>
-                  <div style={requiredDocItemStyle}>
-                    <CheckCircleOutlined
-                      style={{
-                        color: applicant.documents.some(
-                          (d) => d.type === "recommendation",
-                        )
-                          ? colors.successGreen
-                          : colors.mediumGray,
-                      }}
-                    />
-                    <span>Recommendation Letter</span>
-                    {applicant.documents.some(
-                      (d) => d.type === "recommendation",
-                    ) && <span style={docUploadedStyle}>Uploaded</span>}
-                  </div>
-                  <div style={requiredDocItemStyle}>
-                    <CheckCircleOutlined
-                      style={{
-                        color: applicant.documents.some(
-                          (d) => d.type === "photo",
-                        )
-                          ? colors.successGreen
-                          : colors.mediumGray,
-                      }}
-                    />
-                    <span>Passport Photo</span>
-                    {applicant.documents.some((d) => d.type === "photo") && (
-                      <span style={docUploadedStyle}>Uploaded</span>
-                    )}
-                  </div>
-                </div>
-
-                {applicant.documents.length > 0 && (
-                  <>
-                    <h4 style={uploadedDocsTitleStyle}>Uploaded Documents</h4>
-                    <div style={documentsGridStyle}>
-                      {applicant.documents.map((doc: any, index) => (
-                        <div key={index} style={documentCardStyle}>
-                          <div style={documentCardHeaderStyle}>
-                            <FileTextOutlined style={documentCardIconStyle} />
-                            <div style={documentCardInfoStyle}>
-                              <h4 style={documentCardTitleStyle}>{doc.name}</h4>
-                              <p style={documentCardMetaStyle}>
-                                {doc.is_verified
-                                  ? "Verified"
-                                  : "Pending Verification"}
-                              </p>
-                            </div>
-                          </div>
-                          <div style={documentCardActionsStyle}>
-                            <button
-                              style={actionButtonStyle}
-                              onClick={() => handlePreview(doc)}
-                              title="Preview"
-                            >
-                              <EyeOutlined />
-                            </button>
-                            <button
-                              style={actionButtonStyle}
-                              onClick={() =>
-                                handleDownload(doc.file_url, doc.name)
-                              }
-                              title="Download"
-                            >
-                              <DownloadOutlined />
-                            </button>
-                            <button
-                              style={deleteButtonStyle}
-                              onClick={() => handleDeleteDocument(doc.id)}
-                              title="Delete"
-                            >
-                              <DeleteOutlined />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {isEditing && (
-                  <div style={submitSectionStyle}>
-                    <button
-                      style={submitApplicationButtonStyle}
-                      onClick={() => {
-                        if (
-                          !formData.university ||
-                          !formData.department ||
-                          !formData.phone_number ||
-                          !formData.motivation_statement
-                        ) {
-                          alert("Please fill in all required fields");
-                          return;
-                        }
-                        if (applicant.documents.length < 3) {
-                          alert("Please upload at least 3 required documents");
-                          return;
-                        }
-                        alert(
-                          "✅ Application submitted successfully! You will be notified of the next steps.",
-                        );
-                        setIsEditing(false);
-                      }}
-                    >
-                      Submit Application
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ================== STYLES ==================
 const colors = {
   deepBlue: "#0A1A3A",
@@ -1563,41 +301,6 @@ const logoTextStyle: React.CSSProperties = {
   fontWeight: 700,
   color: colors.deepBlue,
   letterSpacing: "0.5px",
-};
-
-const headerCenterStyle: React.CSSProperties = {
-  flex: 2,
-  display: "flex",
-  justifyContent: "center",
-};
-
-const headerNavStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 8,
-  background: colors.offWhite,
-  padding: "4px",
-  borderRadius: 40,
-  border: `1px solid ${colors.softGray}`,
-};
-
-const headerNavItemStyle: React.CSSProperties = {
-  padding: "8px 16px",
-  borderRadius: 32,
-  border: "none",
-  background: "transparent",
-  fontSize: 14,
-  fontWeight: 500,
-  color: colors.darkGray,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  transition: "all 0.2s ease",
-};
-
-const headerNavIconStyle: React.CSSProperties = {
-  fontSize: 16,
-  color: colors.richGold,
 };
 
 const headerRightStyle: React.CSSProperties = {
@@ -1971,6 +674,13 @@ const modalFooterStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "flex-end",
   gap: 12,
+};
+
+// Upload Form Styles - ADD THIS MISSING STYLE
+const uploadFormStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
 };
 
 // Document Preview Styles
@@ -2578,3 +1288,1326 @@ const emptyStateTextStyle: React.CSSProperties = {
   color: colors.mediumGray,
   margin: 0,
 };
+
+export default function VolunteerProfilePage() {
+  const navigate = useNavigate();
+  const [applicant, setApplicant] = useState(registeredUserData);
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "documents" | "interview" | "profile"
+  >("overview");
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isRegistered, setIsRegistered] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [previewDocument, setPreviewDocument] = useState<any>(null);
+  const [uploadModal, setUploadModal] = useState(false);
+  const [uploadData, setUploadData] = useState({
+    type: "",
+    name: "",
+    file: null as File | null,
+  });
+
+  // Form state for unregistered user
+  const [formData, setFormData] = useState({
+    university: "",
+    department: "",
+    year_of_study: "",
+    gpa: "",
+    phone_number: "",
+    date_of_birth: "",
+    motivation_statement: "",
+    additional_languages: [] as string[],
+  });
+
+  useEffect(() => {
+    const username = localStorage.getItem("username");
+    const password = localStorage.getItem("password");
+
+    if (username === "miki@1383" && password === "12345") {
+      setApplicant(registeredUserData);
+      setIsRegistered(true);
+    } else if (username === "mela@474" && password === "678910") {
+      setApplicant(unregisteredUserData);
+      setIsRegistered(false);
+      // Initialize form with existing data
+      setFormData({
+        university: unregisteredUserData.university || "",
+        department: unregisteredUserData.department || "",
+        year_of_study: unregisteredUserData.year_of_study?.toString() || "",
+        gpa: unregisteredUserData.gpa?.toString() || "",
+        phone_number: unregisteredUserData.phone_number || "",
+        date_of_birth: unregisteredUserData.date_of_birth || "",
+        motivation_statement: unregisteredUserData.motivation_statement || "",
+        additional_languages: unregisteredUserData.additional_languages || [
+          "English",
+        ],
+      });
+    } else {
+      navigate("/login");
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, [navigate]);
+
+  // Clean up object URLs when component unmounts or when documents change
+  useEffect(() => {
+    return () => {
+      // Clean up object URLs to prevent memory leaks
+      applicant.documents.forEach((doc: any) => {
+        if (doc.file_url?.startsWith("blob:")) {
+          URL.revokeObjectURL(doc.file_url);
+        }
+      });
+    };
+  }, [applicant.documents]);
+
+  const getStatusConfig = (status: string) => {
+    return (
+      statusConfig[status as keyof typeof statusConfig] ||
+      statusConfig.submitted
+    );
+  };
+
+  const StatusIcon = applicant.status
+    ? getStatusConfig(applicant.status).icon
+    : ClockCircleOutlined;
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const handleDownload = (fileUrl: string, fileName: string) => {
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePreview = (doc: any) => {
+    setPreviewDocument(doc);
+  };
+
+  const closePreview = () => {
+    setPreviewDocument(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("username");
+    localStorage.removeItem("password");
+    navigate("/login");
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleSaveProfile = () => {
+    // Save profile data
+    const updatedApplicant = {
+      ...applicant,
+      university: formData.university,
+      department: formData.department,
+      year_of_study: parseInt(formData.year_of_study) || null,
+      gpa: parseFloat(formData.gpa) || null,
+      phone_number: formData.phone_number,
+      date_of_birth: formData.date_of_birth,
+      motivation_statement: formData.motivation_statement,
+      additional_languages: formData.additional_languages,
+    };
+    setApplicant(updatedApplicant);
+    setIsEditing(false);
+    alert("✅ Profile information saved successfully!");
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size must be less than 5MB");
+        return;
+      }
+
+      // Check file type
+      const allowedTypes = [
+        "application/pdf",
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        alert("Only PDF, JPG, and PNG files are allowed");
+        return;
+      }
+
+      setUploadData({ ...uploadData, file: file });
+    }
+  };
+
+  const handleUploadDocument = () => {
+    if (!uploadData.type || !uploadData.name || !uploadData.file) {
+      alert("Please fill all fields and select a file");
+      return;
+    }
+
+    // Create a local URL for preview
+    const fileUrl = URL.createObjectURL(uploadData.file);
+
+    // Simulate upload
+    const newDoc = {
+      id: `doc${Date.now()}`,
+      type: uploadData.type,
+      name: uploadData.name,
+      file_url: fileUrl,
+      file_type: uploadData.file.type.includes("pdf") ? "pdf" : "image",
+      is_verified: false,
+      uploaded_at: new Date().toISOString().split("T")[0],
+    };
+
+    const updatedApplicant = {
+      ...applicant,
+      documents: [...applicant.documents, newDoc],
+    };
+    setApplicant(updatedApplicant);
+    setUploadModal(false);
+    setUploadData({ type: "", name: "", file: null });
+    alert("✅ Document uploaded successfully! It will be verified shortly.");
+  };
+
+  const handleDeleteDocument = (docId: string) => {
+    if (window.confirm("Are you sure you want to delete this document?")) {
+      const updatedDocuments = applicant.documents.filter(
+        (d: any) => d.id !== docId,
+      );
+      const updatedApplicant = { ...applicant, documents: updatedDocuments };
+      setApplicant(updatedApplicant);
+    }
+  };
+
+  return (
+    <div style={pageStyle}>
+      {/* Background Pattern */}
+      <div style={backgroundPatternStyle}></div>
+
+      {/* Document Preview Modal */}
+      {previewDocument && (
+        <div style={modalOverlayStyle} onClick={closePreview}>
+          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={modalHeaderStyle}>
+              <h3 style={modalTitleStyle}>{previewDocument.name}</h3>
+              <button style={modalCloseStyle} onClick={closePreview}>
+                ×
+              </button>
+            </div>
+            <div style={modalBodyStyle}>
+              {previewDocument.file_type === "pdf" ? (
+                <iframe
+                  src={previewDocument.file_url}
+                  style={pdfViewerStyle}
+                  title={previewDocument.name}
+                />
+              ) : (
+                <img
+                  src={previewDocument.file_url}
+                  alt={previewDocument.name}
+                  style={imageViewerStyle}
+                />
+              )}
+            </div>
+            <div style={modalFooterStyle}>
+              <button
+                style={downloadButtonStyle}
+                onClick={() =>
+                  handleDownload(previewDocument.file_url, previewDocument.name)
+                }
+              >
+                <DownloadOutlined /> Download
+              </button>
+              <button style={modalCloseBtnStyle} onClick={closePreview}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Document Modal */}
+      {uploadModal && (
+        <div style={modalOverlayStyle} onClick={() => setUploadModal(false)}>
+          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={modalHeaderStyle}>
+              <h3 style={modalTitleStyle}>Upload Document</h3>
+              <button
+                style={modalCloseStyle}
+                onClick={() => {
+                  setUploadModal(false);
+                  setUploadData({ type: "", name: "", file: null });
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={modalBodyStyle}>
+              <div style={uploadFormStyle}>
+                <div style={formGroupStyle}>
+                  <label style={formLabelStyle}>Document Type</label>
+                  <select
+                    style={selectStyle}
+                    value={uploadData.type}
+                    onChange={(e) =>
+                      setUploadData({ ...uploadData, type: e.target.value })
+                    }
+                  >
+                    <option value="">Select document type</option>
+                    {documentTypes.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={formGroupStyle}>
+                  <label style={formLabelStyle}>Document Name</label>
+                  <input
+                    type="text"
+                    style={inputStyle}
+                    placeholder="e.g., National ID Front"
+                    value={uploadData.name}
+                    onChange={(e) =>
+                      setUploadData({ ...uploadData, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div style={formGroupStyle}>
+                  <label style={formLabelStyle}>Select File</label>
+                  <div style={fileUploadAreaStyle}>
+                    <input
+                      type="file"
+                      id="file-upload"
+                      style={{ display: "none" }}
+                      onChange={handleFileUpload}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                    />
+                    <label htmlFor="file-upload" style={fileUploadLabelStyle}>
+                      <UploadOutlined /> Choose File
+                    </label>
+                    {uploadData.file && (
+                      <span style={fileNameStyle}>{uploadData.file.name}</span>
+                    )}
+                  </div>
+                  <p style={fileHintStyle}>
+                    Accepted formats: PDF, JPG, PNG (Max 5MB)
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div style={modalFooterStyle}>
+              <button
+                style={{
+                  ...saveButtonStyle,
+                  opacity:
+                    !uploadData.type || !uploadData.name || !uploadData.file
+                      ? 0.5
+                      : 1,
+                  cursor:
+                    !uploadData.type || !uploadData.name || !uploadData.file
+                      ? "not-allowed"
+                      : "pointer",
+                }}
+                onClick={handleUploadDocument}
+                disabled={
+                  !uploadData.type || !uploadData.name || !uploadData.file
+                }
+              >
+                <UploadOutlined /> Upload
+              </button>
+              <button
+                style={cancelButtonStyle}
+                onClick={() => {
+                  setUploadModal(false);
+                  setUploadData({ type: "", name: "", file: null });
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Professional Dashboard Header */}
+      <div style={dashboardHeaderStyle}>
+        <div style={headerLeftStyle}>
+          <div style={logoContainerStyle}>
+            <img
+              src="/images/mfa-logo.png"
+              alt="MoFA"
+              style={headerLogoStyle}
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+            <span style={logoTextStyle}>MoFA Volunteer Portal</span>
+          </div>
+        </div>
+
+        <div style={headerRightStyle}>
+          <div style={headerDateTimeStyle}>
+            <CalendarOutlined
+              style={{ marginRight: 8, color: colors.richGold }}
+            />
+            {formatDate(currentTime)}
+          </div>
+          <button style={headerIconButtonStyle}>
+            <BellOutlined style={headerIconStyle} />
+            {isRegistered && <span style={notificationBadgeStyle}>3</span>}
+          </button>
+          <button style={headerIconButtonStyle}>
+            <SettingOutlined style={headerIconStyle} />
+          </button>
+          <div style={userMenuStyle}>
+            <div style={userAvatarSmallStyle}>
+              {applicant.user.first_name[0]}
+              {applicant.user.last_name[0]}
+            </div>
+            <div style={userInfoSmallStyle}>
+              <div style={userNameSmallStyle}>
+                {applicant.user.first_name} {applicant.user.last_name}
+              </div>
+              <div style={userRoleSmallStyle}>
+                {isRegistered ? "Volunteer Applicant" : "Guest User"}
+              </div>
+            </div>
+            <button
+              style={logoutButtonStyle}
+              onClick={handleLogout}
+              title="Logout"
+            >
+              <LogoutOutlined />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div style={mainContentAreaStyle}>
+        {/* Header */}
+        <div style={headerStyle}>
+          <button style={backNavButtonStyle} onClick={() => navigate("/")}>
+            <ArrowLeftOutlined
+              style={{ fontSize: 20, color: colors.deepBlue }}
+            />
+          </button>
+          <div>
+            <h1 style={headerTitleStyle}>
+              {isRegistered
+                ? "My Application"
+                : "Welcome to MoFA Volunteer Portal"}
+            </h1>
+            <p style={headerSubtitleStyle}>
+              {isRegistered
+                ? "Track your volunteer application status"
+                : "Complete your profile to apply"}
+            </p>
+          </div>
+          <div style={headerSpacerStyle}></div>
+        </div>
+
+        {/* Main Container */}
+        <div style={containerStyle}>
+          {/* Application Number Banner - Only show if registered */}
+          {isRegistered && (
+            <div style={applicationBannerStyle}>
+              <IdcardOutlined
+                style={{
+                  fontSize: 24,
+                  color: colors.richGold,
+                  marginRight: 12,
+                }}
+              />
+              <span style={applicationNumberStyle}>
+                Application #: {applicant.application_number}
+              </span>
+              <div style={statusBadgeStyle}>
+                <StatusIcon style={{ marginRight: 6 }} />
+                {getStatusConfig(applicant.status).label}
+              </div>
+            </div>
+          )}
+
+          {/* Profile Header */}
+          <div style={profileHeaderStyle}>
+            <div style={avatarContainerStyle}>
+              <div style={avatarStyle}>
+                {applicant.user.first_name[0]}
+                {applicant.user.last_name[0]}
+              </div>
+            </div>
+            <div style={profileInfoStyle}>
+              <h2 style={profileNameStyle}>
+                {applicant.user.first_name} {applicant.user.middle_name}{" "}
+                {applicant.user.last_name}
+              </h2>
+              <p style={profileEmailStyle}>
+                <MailOutlined
+                  style={{ marginRight: 8, color: colors.richGold }}
+                />
+                {applicant.user.email}
+              </p>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div style={tabContainerStyle}>
+            <button
+              style={{
+                ...tabStyle,
+                ...(activeTab === "overview" ? activeTabStyle : {}),
+              }}
+              onClick={() => setActiveTab("overview")}
+            >
+              Overview
+            </button>
+            <button
+              style={{
+                ...tabStyle,
+                ...(activeTab === "documents" ? activeTabStyle : {}),
+              }}
+              onClick={() => setActiveTab("documents")}
+            >
+              Documents
+            </button>
+            <button
+              style={{
+                ...tabStyle,
+                ...(activeTab === "interview" ? activeTabStyle : {}),
+              }}
+              onClick={() => setActiveTab("interview")}
+            >
+              Interview
+            </button>
+            {!isRegistered && (
+              <button
+                style={{
+                  ...tabStyle,
+                  ...(activeTab === "profile" ? activeTabStyle : {}),
+                }}
+                onClick={() => setActiveTab("profile")}
+              >
+                <EditOutlined /> Profile
+              </button>
+            )}
+          </div>
+
+          {/* Overview Tab */}
+          {activeTab === "overview" && (
+            <div style={tabContentStyle}>
+              {isRegistered ? (
+                <>
+                  {/* Application Timeline */}
+                  <div style={sectionCardStyle}>
+                    <h3 style={sectionTitleStyle}>
+                      <ClockCircleOutlined
+                        style={{ marginRight: 8, color: colors.richGold }}
+                      />
+                      Application Timeline
+                    </h3>
+                    <div style={timelineStyle}>
+                      {applicant.stages.map((stage, index) => (
+                        <div key={index} style={timelineItemStyle}>
+                          <div style={timelineIconStyle}>
+                            <div
+                              style={{
+                                ...timelineDotStyle,
+                                backgroundColor:
+                                  stage.status === "completed"
+                                    ? colors.successGreen
+                                    : stage.status === "current"
+                                      ? colors.richGold
+                                      : colors.softGray,
+                              }}
+                            ></div>
+                            {index < applicant.stages.length - 1 && (
+                              <div style={timelineLineStyle}></div>
+                            )}
+                          </div>
+                          <div style={timelineContentStyle}>
+                            <div style={timelineHeaderStyle}>
+                              <span style={timelineTitleStyle}>
+                                {stage.name}
+                              </span>
+                              <span style={timelineDateStyle}>
+                                {stage.date}
+                              </span>
+                            </div>
+                            <span style={timelineStatusStyle}>
+                              {stage.status === "completed" && "✓ Completed"}
+                              {stage.status === "current" && "● In Progress"}
+                              {stage.status === "pending" && "○ Pending"}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Personal Information */}
+                  <div style={sectionCardStyle}>
+                    <h3 style={sectionTitleStyle}>
+                      <UserOutlined
+                        style={{ marginRight: 8, color: colors.richGold }}
+                      />
+                      Personal Information
+                    </h3>
+                    <div style={infoGridStyle}>
+                      <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>
+                          <UserOutlined
+                            style={{ marginRight: 6, color: colors.richGold }}
+                          />
+                          Full Name
+                        </span>
+                        <span style={infoValueStyle}>
+                          {applicant.user.first_name}{" "}
+                          {applicant.user.middle_name}{" "}
+                          {applicant.user.last_name}
+                        </span>
+                      </div>
+                      <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>
+                          <MailOutlined
+                            style={{ marginRight: 6, color: colors.richGold }}
+                          />
+                          Email
+                        </span>
+                        <span style={infoValueStyle}>
+                          {applicant.user.email}
+                        </span>
+                      </div>
+                      <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>
+                          <PhoneOutlined
+                            style={{ marginRight: 6, color: colors.richGold }}
+                          />
+                          Phone
+                        </span>
+                        <span style={infoValueStyle}>
+                          {applicant.phone_number}
+                        </span>
+                      </div>
+                      <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>
+                          {applicant.gender === "female" ? (
+                            <WomanOutlined
+                              style={{ marginRight: 6, color: colors.richGold }}
+                            />
+                          ) : (
+                            <ManOutlined
+                              style={{ marginRight: 6, color: colors.richGold }}
+                            />
+                          )}
+                          Gender
+                        </span>
+                        <span style={infoValueStyle}>{applicant.gender}</span>
+                      </div>
+                      <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>
+                          <CalendarOutlined
+                            style={{ marginRight: 6, color: colors.richGold }}
+                          />
+                          Date of Birth
+                        </span>
+                        <span style={infoValueStyle}>
+                          {applicant.date_of_birth}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Academic Information */}
+                  <div style={sectionCardStyle}>
+                    <h3 style={sectionTitleStyle}>
+                      <BookOutlined
+                        style={{ marginRight: 8, color: colors.richGold }}
+                      />
+                      Academic Information
+                    </h3>
+                    <div style={infoGridStyle}>
+                      <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>
+                          <BankOutlined
+                            style={{ marginRight: 6, color: colors.richGold }}
+                          />
+                          University
+                        </span>
+                        <span style={infoValueStyle}>
+                          {applicant.university}
+                        </span>
+                      </div>
+                      <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>
+                          <BookOutlined
+                            style={{ marginRight: 6, color: colors.richGold }}
+                          />
+                          Department
+                        </span>
+                        <span style={infoValueStyle}>
+                          {applicant.department}
+                        </span>
+                      </div>
+                      <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>
+                          <StarOutlined
+                            style={{ marginRight: 6, color: colors.richGold }}
+                          />
+                          Year of Study
+                        </span>
+                        <span style={infoValueStyle}>
+                          Year {applicant.year_of_study}
+                        </span>
+                      </div>
+                      <div style={infoItemStyle}>
+                        <span style={infoLabelStyle}>
+                          <StarOutlined
+                            style={{ marginRight: 6, color: colors.richGold }}
+                          />
+                          GPA
+                        </span>
+                        <span style={infoValueStyle}>{applicant.gpa}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Languages */}
+                  <div style={sectionCardStyle}>
+                    <h3 style={sectionTitleStyle}>
+                      <GlobalOutlined
+                        style={{ marginRight: 8, color: colors.richGold }}
+                      />
+                      Languages
+                    </h3>
+                    <div style={languageContainerStyle}>
+                      <div style={languageBadgeStyle}>
+                        <strong>Primary:</strong> {applicant.primary_language}
+                      </div>
+                      {applicant.additional_languages.map((lang, index) => (
+                        <div key={index} style={languageBadgeStyle}>
+                          {lang}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Motivation Statement */}
+                  <div style={sectionCardStyle}>
+                    <h3 style={sectionTitleStyle}>
+                      <FileTextOutlined
+                        style={{ marginRight: 8, color: colors.richGold }}
+                      />
+                      Motivation Statement
+                    </h3>
+                    <p style={motivationStyle}>
+                      {applicant.motivation_statement}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div style={welcomeCardStyle}>
+                  <StarOutlined style={welcomeIconStyle} />
+                  <h2 style={welcomeTitleStyle}>
+                    Welcome to MoFA Volunteer Program!
+                  </h2>
+                  <p style={welcomeTextStyle}>
+                    Complete your profile and upload required documents to start
+                    your journey with the Ministry of Foreign Affairs.
+                  </p>
+                  <button
+                    style={getStartedButtonStyle}
+                    onClick={() => setActiveTab("profile")}
+                  >
+                    Get Started{" "}
+                    <ArrowLeftOutlined
+                      style={{ transform: "rotate(180deg)" }}
+                    />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Documents Tab */}
+          {activeTab === "documents" && (
+            <div style={tabContentStyle}>
+              <div style={sectionCardStyle}>
+                <div style={sectionHeaderWithButtonStyle}>
+                  <h3 style={sectionTitleStyle}>
+                    <FileTextOutlined
+                      style={{ marginRight: 8, color: colors.richGold }}
+                    />
+                    {isRegistered ? "Verified Documents" : "My Documents"}
+                  </h3>
+                  {!isRegistered && (
+                    <button
+                      style={uploadButtonStyle}
+                      onClick={() => {
+                        setUploadModal(true);
+                        setUploadData({ type: "", name: "", file: null });
+                      }}
+                    >
+                      <PlusOutlined /> Upload Document
+                    </button>
+                  )}
+                </div>
+
+                {applicant.documents.length === 0 ? (
+                  <div style={emptyDocumentsStyle}>
+                    <FileTextOutlined style={emptyIconStyle} />
+                    <h4 style={emptyTitleStyle}>No Documents Uploaded</h4>
+                    <p style={emptyTextStyle}>
+                      {isRegistered
+                        ? "Your documents are being processed."
+                        : "Upload your documents to complete your application."}
+                    </p>
+                    {!isRegistered && (
+                      <button
+                        style={uploadEmptyButtonStyle}
+                        onClick={() => {
+                          setUploadModal(true);
+                          setUploadData({ type: "", name: "", file: null });
+                        }}
+                      >
+                        <UploadOutlined /> Upload Now
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div style={documentsGridStyle}>
+                    {applicant.documents.map((doc: any, index) => (
+                      <div key={index} style={documentCardStyle}>
+                        <div style={documentCardHeaderStyle}>
+                          <FileTextOutlined style={documentCardIconStyle} />
+                          <div style={documentCardInfoStyle}>
+                            <h4 style={documentCardTitleStyle}>{doc.name}</h4>
+                            <p style={documentCardMetaStyle}>
+                              Uploaded: {doc.uploaded_at || doc.verified_at}
+                            </p>
+                          </div>
+                          {doc.is_verified && (
+                            <span style={verifiedBadgeStyle}>
+                              <CheckCircleOutlined /> Verified
+                            </span>
+                          )}
+                        </div>
+                        <div style={documentCardActionsStyle}>
+                          {isRegistered ? (
+                            <>
+                              <button
+                                style={actionButtonStyle}
+                                onClick={() => handlePreview(doc)}
+                                title="Preview"
+                              >
+                                <EyeOutlined />
+                              </button>
+                              <button
+                                style={actionButtonStyle}
+                                onClick={() =>
+                                  handleDownload(doc.file_url, doc.name)
+                                }
+                                title="Download"
+                              >
+                                <DownloadOutlined />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                style={actionButtonStyle}
+                                onClick={() => handlePreview(doc)}
+                                title="Preview"
+                              >
+                                <EyeOutlined />
+                              </button>
+                              <button
+                                style={actionButtonStyle}
+                                onClick={() =>
+                                  handleDownload(doc.file_url, doc.name)
+                                }
+                                title="Download"
+                              >
+                                <DownloadOutlined />
+                              </button>
+                              <button
+                                style={deleteButtonStyle}
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                title="Delete"
+                              >
+                                <DeleteOutlined />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Interview Tab */}
+          {activeTab === "interview" && (
+            <div style={tabContentStyle}>
+              {isRegistered && applicant.status === "interview_scheduled" ? (
+                <>
+                  {/* Interview Details */}
+                  <div style={sectionCardStyle}>
+                    <h3 style={sectionTitleStyle}>
+                      <CalendarOutlined
+                        style={{ marginRight: 8, color: colors.richGold }}
+                      />
+                      Interview Details
+                    </h3>
+                    <div style={interviewDetailsStyle}>
+                      <div style={interviewDetailItemStyle}>
+                        <span style={interviewDetailLabelStyle}>Date:</span>
+                        <span style={interviewDetailValueStyle}>
+                          {applicant.interview.date}
+                        </span>
+                      </div>
+                      <div style={interviewDetailItemStyle}>
+                        <span style={interviewDetailLabelStyle}>Time:</span>
+                        <span style={interviewDetailValueStyle}>
+                          {applicant.interview.time}
+                        </span>
+                      </div>
+                      <div style={interviewDetailItemStyle}>
+                        <span style={interviewDetailLabelStyle}>Duration:</span>
+                        <span style={interviewDetailValueStyle}>
+                          {applicant.interview.duration}
+                        </span>
+                      </div>
+                      <div style={interviewDetailItemStyle}>
+                        <span style={interviewDetailLabelStyle}>Location:</span>
+                        <span style={interviewDetailValueStyle}>
+                          {applicant.interview.location}
+                        </span>
+                      </div>
+                      <div style={interviewDetailItemStyle}>
+                        <span style={interviewDetailLabelStyle}>Format:</span>
+                        <span style={interviewDetailValueStyle}>
+                          {applicant.interview.format}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* What to Bring */}
+                  <div style={sectionCardStyle}>
+                    <h3 style={sectionTitleStyle}>
+                      <FileTextOutlined
+                        style={{ marginRight: 8, color: colors.richGold }}
+                      />
+                      What to Bring
+                    </h3>
+                    <ul style={listStyle}>
+                      {applicant.interview.what_to_bring.map((item, index) => (
+                        <li key={index} style={listItemStyle}>
+                          <CheckCircleOutlined
+                            style={{
+                              color: colors.richGold,
+                              marginRight: 12,
+                            }}
+                          />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Preparation Tips */}
+                  <div style={sectionCardStyle}>
+                    <h3 style={sectionTitleStyle}>
+                      <StarOutlined
+                        style={{ marginRight: 8, color: colors.richGold }}
+                      />
+                      Preparation Tips
+                    </h3>
+                    <ul style={listStyle}>
+                      {applicant.interview.preparation_tips.map(
+                        (tip, index) => (
+                          <li key={index} style={listItemStyle}>
+                            <CheckCircleOutlined
+                              style={{
+                                color: colors.richGold,
+                                marginRight: 12,
+                              }}
+                            />
+                            {tip}
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                </>
+              ) : (
+                <div style={emptyStateStyle}>
+                  <CalendarOutlined
+                    style={{
+                      fontSize: 48,
+                      color: colors.mediumGray,
+                      marginBottom: 16,
+                    }}
+                  />
+                  <h3 style={emptyStateTitleStyle}>No Interview Scheduled</h3>
+                  <p style={emptyStateTextStyle}>
+                    {isRegistered
+                      ? "Your application is currently under review. You'll be notified when an interview is scheduled."
+                      : "Complete your profile and submit your application to be considered for interviews."}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Profile Tab (for unregistered users) */}
+          {activeTab === "profile" && !isRegistered && (
+            <div style={tabContentStyle}>
+              <div style={sectionCardStyle}>
+                <div style={sectionHeaderWithButtonStyle}>
+                  <h3 style={sectionTitleStyle}>
+                    <UserOutlined
+                      style={{ marginRight: 8, color: colors.richGold }}
+                    />
+                    Complete Your Profile
+                  </h3>
+                  {!isEditing ? (
+                    <button
+                      style={editButtonStyle}
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <EditOutlined /> Edit Profile
+                    </button>
+                  ) : (
+                    <button style={saveButtonStyle} onClick={handleSaveProfile}>
+                      <SaveOutlined /> Save Profile
+                    </button>
+                  )}
+                </div>
+
+                <div style={profileFormStyle}>
+                  <div style={formRowStyle}>
+                    <div style={formGroupStyle}>
+                      <label style={formLabelStyle}>University *</label>
+                      <input
+                        type="text"
+                        name="university"
+                        style={inputStyle}
+                        value={formData.university}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                        placeholder="Enter your university"
+                      />
+                    </div>
+                    <div style={formGroupStyle}>
+                      <label style={formLabelStyle}>Department *</label>
+                      <input
+                        type="text"
+                        name="department"
+                        style={inputStyle}
+                        value={formData.department}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                        placeholder="Enter your department"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={formRowStyle}>
+                    <div style={formGroupStyle}>
+                      <label style={formLabelStyle}>Year of Study</label>
+                      <select
+                        name="year_of_study"
+                        style={selectStyle}
+                        value={formData.year_of_study}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                      >
+                        <option value="">Select year</option>
+                        <option value="1">Year 1</option>
+                        <option value="2">Year 2</option>
+                        <option value="3">Year 3</option>
+                        <option value="4">Year 4</option>
+                        <option value="5">Year 5+</option>
+                      </select>
+                    </div>
+                    <div style={formGroupStyle}>
+                      <label style={formLabelStyle}>GPA</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        name="gpa"
+                        style={inputStyle}
+                        value={formData.gpa}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                        placeholder="e.g., 3.75"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={formRowStyle}>
+                    <div style={formGroupStyle}>
+                      <label style={formLabelStyle}>Phone Number *</label>
+                      <input
+                        type="tel"
+                        name="phone_number"
+                        style={inputStyle}
+                        value={formData.phone_number}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                        placeholder="+251 912 345 678"
+                      />
+                    </div>
+                    <div style={formGroupStyle}>
+                      <label style={formLabelStyle}>Date of Birth</label>
+                      <input
+                        type="date"
+                        name="date_of_birth"
+                        style={inputStyle}
+                        value={formData.date_of_birth}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={formGroupStyle}>
+                    <label style={formLabelStyle}>Motivation Statement *</label>
+                    <textarea
+                      name="motivation_statement"
+                      style={textareaStyle}
+                      rows={5}
+                      value={formData.motivation_statement}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      placeholder="Tell us why you want to volunteer with the Ministry of Foreign Affairs..."
+                    />
+                  </div>
+
+                  <div style={formGroupStyle}>
+                    <label style={formLabelStyle}>Additional Languages</label>
+                    <input
+                      type="text"
+                      style={inputStyle}
+                      value={formData.additional_languages
+                        .filter((l) => l !== "English")
+                        .join(", ")}
+                      onChange={(e) => {
+                        const langs = e.target.value
+                          .split(",")
+                          .map((l) => l.trim())
+                          .filter((l) => l);
+                        setFormData({
+                          ...formData,
+                          additional_languages: ["English", ...langs],
+                        });
+                      }}
+                      disabled={!isEditing}
+                      placeholder="French, Arabic, etc. (comma separated)"
+                    />
+                  </div>
+
+                  {!isEditing && (
+                    <div style={formMessageStyle}>
+                      <CheckCircleOutlined
+                        style={{ color: colors.richGold, marginRight: 8 }}
+                      />
+                      Click "Edit Profile" to update your information
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Document Upload Section */}
+              <div style={sectionCardStyle}>
+                <div style={sectionHeaderWithButtonStyle}>
+                  <h3 style={sectionTitleStyle}>
+                    <FileTextOutlined
+                      style={{ marginRight: 8, color: colors.richGold }}
+                    />
+                    Required Documents
+                  </h3>
+                  <button
+                    style={uploadButtonStyle}
+                    onClick={() => {
+                      setUploadModal(true);
+                      setUploadData({ type: "", name: "", file: null });
+                    }}
+                  >
+                    <PlusOutlined /> Add Document
+                  </button>
+                </div>
+
+                <div style={requiredDocsListStyle}>
+                  <div style={requiredDocItemStyle}>
+                    <CheckCircleOutlined
+                      style={{
+                        color: applicant.documents.some((d) => d.type === "id")
+                          ? colors.successGreen
+                          : colors.mediumGray,
+                      }}
+                    />
+                    <span>National ID / Passport</span>
+                    {applicant.documents.some((d) => d.type === "id") && (
+                      <span style={docUploadedStyle}>Uploaded</span>
+                    )}
+                  </div>
+                  <div style={requiredDocItemStyle}>
+                    <CheckCircleOutlined
+                      style={{
+                        color: applicant.documents.some(
+                          (d) => d.type === "transcript",
+                        )
+                          ? colors.successGreen
+                          : colors.mediumGray,
+                      }}
+                    />
+                    <span>Academic Transcript</span>
+                    {applicant.documents.some(
+                      (d) => d.type === "transcript",
+                    ) && <span style={docUploadedStyle}>Uploaded</span>}
+                  </div>
+                  <div style={requiredDocItemStyle}>
+                    <CheckCircleOutlined
+                      style={{
+                        color: applicant.documents.some(
+                          (d) => d.type === "recommendation",
+                        )
+                          ? colors.successGreen
+                          : colors.mediumGray,
+                      }}
+                    />
+                    <span>Recommendation Letter</span>
+                    {applicant.documents.some(
+                      (d) => d.type === "recommendation",
+                    ) && <span style={docUploadedStyle}>Uploaded</span>}
+                  </div>
+                  <div style={requiredDocItemStyle}>
+                    <CheckCircleOutlined
+                      style={{
+                        color: applicant.documents.some(
+                          (d) => d.type === "photo",
+                        )
+                          ? colors.successGreen
+                          : colors.mediumGray,
+                      }}
+                    />
+                    <span>Passport Photo</span>
+                    {applicant.documents.some((d) => d.type === "photo") && (
+                      <span style={docUploadedStyle}>Uploaded</span>
+                    )}
+                  </div>
+                </div>
+
+                {applicant.documents.length > 0 && (
+                  <>
+                    <h4 style={uploadedDocsTitleStyle}>Uploaded Documents</h4>
+                    <div style={documentsGridStyle}>
+                      {applicant.documents.map((doc: any, index) => (
+                        <div key={index} style={documentCardStyle}>
+                          <div style={documentCardHeaderStyle}>
+                            <FileTextOutlined style={documentCardIconStyle} />
+                            <div style={documentCardInfoStyle}>
+                              <h4 style={documentCardTitleStyle}>{doc.name}</h4>
+                              <p style={documentCardMetaStyle}>
+                                {doc.is_verified
+                                  ? "Verified"
+                                  : "Pending Verification"}
+                              </p>
+                            </div>
+                          </div>
+                          <div style={documentCardActionsStyle}>
+                            <button
+                              style={actionButtonStyle}
+                              onClick={() => handlePreview(doc)}
+                              title="Preview"
+                            >
+                              <EyeOutlined />
+                            </button>
+                            <button
+                              style={actionButtonStyle}
+                              onClick={() =>
+                                handleDownload(doc.file_url, doc.name)
+                              }
+                              title="Download"
+                            >
+                              <DownloadOutlined />
+                            </button>
+                            <button
+                              style={deleteButtonStyle}
+                              onClick={() => handleDeleteDocument(doc.id)}
+                              title="Delete"
+                            >
+                              <DeleteOutlined />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {isEditing && (
+                  <div style={submitSectionStyle}>
+                    <button
+                      style={submitApplicationButtonStyle}
+                      onClick={() => {
+                        if (
+                          !formData.university ||
+                          !formData.department ||
+                          !formData.phone_number ||
+                          !formData.motivation_statement
+                        ) {
+                          alert("Please fill in all required fields");
+                          return;
+                        }
+                        if (applicant.documents.length < 3) {
+                          alert("Please upload at least 3 required documents");
+                          return;
+                        }
+                        alert(
+                          "✅ Application submitted successfully! You will be notified of the next steps.",
+                        );
+                        setIsEditing(false);
+                      }}
+                    >
+                      Submit Application
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
