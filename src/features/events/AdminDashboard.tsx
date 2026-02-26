@@ -12,6 +12,7 @@ import {
   FileTextOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  TrophyOutlined,
   ArrowLeftOutlined,
   DownloadOutlined,
   StarOutlined,
@@ -186,67 +187,59 @@ const IDCardTemplate = ({
   };
 
   const getPhotoPath = () => {
+    // Fix the path - remove /public/ and ensure correct path
     const photoMap: { [key: string]: string } = {
-      "Miki Shimeles": "/public/Miki_Shimeles.png",
-      "Mela Tadesse": "/public/Mela_Tadesse.png",
-      "Abeba Mekonnen": "/public/Abeba_Mekonnen.png",
+      "Miki Shimeles": "/Miki_Shimeles.png",
+      "Mela Tadesse": "/Mela_Tadesse.png",
+      "Abeba Mekonnen": "/Abeba_Mekonnen.png",
     };
     const fullName = `${volunteer.user.first_name} ${volunteer.user.last_name}`;
     return photoMap[fullName] || "";
   };
+
+  const [imageError, setImageError] = useState(false);
+  const [headerImageError, setHeaderImageError] = useState(false);
 
   if (side === "front") {
     return (
       <div style={idCardFrontStyle}>
         {/* Header Image */}
         <div style={idCardHeaderContainerStyle}>
-          <img
-            src="/images/mofa-idheader.jpg"
-            alt="MOFA Header"
-            style={idCardHeaderImageStyle}
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-              const parent = e.currentTarget.parentElement;
-              if (parent) {
-                const fallbackHeader = document.createElement("div");
-                fallbackHeader.style.height = "100%";
-                fallbackHeader.style.background = colors.deepBlue;
-                fallbackHeader.style.width = "100%";
-                parent.appendChild(fallbackHeader);
-              }
-            }}
-          />
+          {!headerImageError ? (
+            <img
+              src="images/mofa-idheader.jpg"
+              alt="MOFA Header"
+              style={idCardHeaderImageStyle}
+              crossOrigin="anonymous"
+              onError={() => setHeaderImageError(true)}
+            />
+          ) : (
+            <div style={idCardHeaderFallbackStyle}>
+              <span style={idCardHeaderFallbackText}>
+                Ministry of Foreign Affairs
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div style={idCardFrontContentStyle}>
           {/* Photo */}
           <div style={idCardPhotoWrapperStyle}>
-            <img
-              src={getPhotoPath()}
-              alt={getFullName()}
-              style={idCardPhotoStyle}
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-                const parent = e.currentTarget.parentElement;
-                if (parent) {
-                  const fallback = document.createElement("div");
-                  fallback.style.width = "112px";
-                  fallback.style.height = "128px";
-                  fallback.style.background = `linear-gradient(135deg, ${colors.deepBlue}, ${colors.richGold})`;
-                  fallback.style.borderRadius = "4px";
-                  fallback.style.display = "flex";
-                  fallback.style.alignItems = "center";
-                  fallback.style.justifyContent = "center";
-                  fallback.style.color = "#ffffff";
-                  fallback.style.fontSize = "32px";
-                  fallback.style.fontWeight = "700";
-                  fallback.style.border = "2px solid #ddd";
-                  fallback.textContent = `${volunteer.user.first_name[0]}${volunteer.user.last_name[0]}`;
-                  parent.appendChild(fallback);
-                }
-              }}
-            />
+            {!imageError && getPhotoPath() ? (
+              <img
+                src={getPhotoPath()}
+                alt={getFullName()}
+                style={idCardPhotoStyle}
+                crossOrigin="anonymous"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <div style={idCardPhotoFallbackStyle}>
+                {volunteer.user.first_name[0]}
+                {volunteer.user.last_name[0]}
+              </div>
+            )}
           </div>
 
           {/* Name and Info */}
@@ -269,22 +262,21 @@ const IDCardTemplate = ({
       <div style={idCardBackStyle}>
         {/* Header Image */}
         <div style={idCardHeaderContainerStyle}>
-          <img
-            src="/images/mofa-idheader.jpg"
-            alt="MOFA Header"
-            style={idCardHeaderImageStyle}
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-              const parent = e.currentTarget.parentElement;
-              if (parent) {
-                const fallbackHeader = document.createElement("div");
-                fallbackHeader.style.height = "100%";
-                fallbackHeader.style.background = colors.deepBlue;
-                fallbackHeader.style.width = "100%";
-                parent.appendChild(fallbackHeader);
-              }
-            }}
-          />
+          {!headerImageError ? (
+            <img
+              src="images/mofa-idheader.jpg"
+              alt="MOFA Header"
+              style={idCardHeaderImageStyle}
+              crossOrigin="anonymous"
+              onError={() => setHeaderImageError(true)}
+            />
+          ) : (
+            <div style={idCardHeaderFallbackStyle}>
+              <span style={idCardHeaderFallbackText}>
+                Ministry of Foreign Affairs
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Back Content - Only text */}
@@ -309,7 +301,10 @@ const IDCardTemplate = ({
         </div>
 
         {/* Footer - Red with White Text */}
-        <div style={idCardBackFooterBarStyle}>BACK SIDE</div>
+        <div style={idCardFrontFooterStyle}>
+          <div style={idCardFooterTextStyle}>TEMPORARY ID</div>
+          <div style={idCardFooterAmharicStyle}>ጊዜያዊ መታወቂያ</div>
+        </div>
       </div>
     );
   }
@@ -381,6 +376,10 @@ export default function AdminDashboard() {
     navigate("/login");
   };
 
+  const handleCertificateClick = () => {
+    alert("Certificate Generation feature coming soon!");
+  };
+
   const handleViewVolunteer = (volunteer: any) => {
     setSelectedVolunteer(volunteer);
     setIdSide("front");
@@ -393,79 +392,150 @@ export default function AdminDashboard() {
 
   const handleGeneratePDF = async (volunteer: any, side: "front" | "back") => {
     try {
+      // Create PDF with A4 size
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: [86, 64], // Increased height from 54 to 64mm to prevent compression
+        format: "a4",
       });
 
-      // Create a temporary div to render the ID card
-      const tempDiv = document.createElement("div");
-      tempDiv.style.position = "absolute";
-      tempDiv.style.left = "-9999px";
-      tempDiv.style.top = "-9999px";
-      tempDiv.style.width = "350px";
-      tempDiv.style.height = side === "front" ? "480px" : "440px"; // Increased height
-      tempDiv.style.backgroundColor = "#ffffff";
-      document.body.appendChild(tempDiv);
+      // Card dimensions - increased height to prevent compression
+      const cardWidth = 86; // ID card width in mm
+      const cardHeight = 74; // Increased from 64mm to 74mm for better proportions
 
-      // Render the ID card component
+      // Calculate positions for side by side cards on A4
+      const pageWidth = 210; // A4 width
+      const totalWidth = cardWidth * 2 + 15; // Two cards plus gap
+      const startX = (pageWidth - totalWidth) / 2; // Center both cards horizontally
+
+      // Center vertically on page
+      const centerY = (297 - cardHeight) / 2;
+
+      // Create temporary divs for rendering
       const { createRoot } = await import("react-dom/client");
-      const rootInstance = createRoot(tempDiv);
 
-      await new Promise<void>((resolve) => {
-        rootInstance.render(
-          <IDCardTemplate volunteer={volunteer} side={side} />,
-        );
+      // Helper function to wait for images to load
+      const waitForImages = (element: HTMLElement): Promise<void> => {
+        const images = Array.from(element.getElementsByTagName("img"));
+        const promises = images.map((img) => {
+          if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = () => resolve(null);
+            img.onerror = () => {
+              console.warn("Image failed to load:", img.src);
+              resolve(null); // Don't reject, just continue with fallback
+            };
+          });
+        });
+        return Promise.all(promises).then(() => {});
+      };
 
-        // Wait for rendering and image loading
-        setTimeout(resolve, 500);
-      });
+      // Render front side
+      const frontDiv = document.createElement("div");
+      frontDiv.style.position = "absolute";
+      frontDiv.style.left = "-9999px";
+      frontDiv.style.top = "-9999px";
+      frontDiv.style.width = "350px";
+      frontDiv.style.height = "500px";
+      frontDiv.style.backgroundColor = "#ffffff";
+      frontDiv.style.overflow = "hidden";
+      document.body.appendChild(frontDiv);
 
-      // Convert the rendered card to canvas with higher scale
-      const canvas = await html2canvas(tempDiv, {
-        scale: 3, // Increased scale for better quality
+      const frontRoot = createRoot(frontDiv);
+      frontRoot.render(<IDCardTemplate volunteer={volunteer} side="front" />);
+
+      // Wait for images to load
+      await waitForImages(frontDiv);
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Additional delay for rendering
+
+      const frontCanvas = await html2canvas(frontDiv, {
+        scale: 3,
         backgroundColor: "#ffffff",
         logging: false,
-        allowTaint: false,
+        allowTaint: true,
         useCORS: true,
         windowWidth: 350,
-        windowHeight: side === "front" ? 480 : 440,
-        onclone: (clonedDoc, element) => {
-          // Ensure all images are loaded
-          const images = element.getElementsByTagName("img");
-          return Promise.all(
-            Array.from(images).map((img) => {
-              if (img.complete) return Promise.resolve();
-              return new Promise((resolve) => {
-                img.onload = resolve;
-                img.onerror = resolve;
-              });
-            }),
-          );
+        windowHeight: 500,
+        onclone: (clonedDoc) => {
+          // Ensure images in cloned document are handled
+          const clonedImages = clonedDoc.getElementsByTagName("img");
+          Array.from(clonedImages).forEach((img) => {
+            if (img.src) {
+              img.crossOrigin = "anonymous";
+            }
+          });
         },
       });
 
-      // Add the canvas image to PDF with proper dimensions
-      const imgData = canvas.toDataURL("image/png");
-      const imgWidth = 86; // Fixed width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const frontImgData = frontCanvas.toDataURL("image/png");
+      frontRoot.unmount();
+      document.body.removeChild(frontDiv);
+
+      // Render back side
+      const backDiv = document.createElement("div");
+      backDiv.style.position = "absolute";
+      backDiv.style.left = "-9999px";
+      backDiv.style.top = "-9999px";
+      backDiv.style.width = "350px";
+      backDiv.style.height = "500px";
+      backDiv.style.backgroundColor = "#ffffff";
+      backDiv.style.overflow = "hidden";
+      document.body.appendChild(backDiv);
+
+      const backRoot = createRoot(backDiv);
+      backRoot.render(<IDCardTemplate volunteer={volunteer} side="back" />);
+
+      // Wait for images to load
+      await waitForImages(backDiv);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const backCanvas = await html2canvas(backDiv, {
+        scale: 3,
+        backgroundColor: "#ffffff",
+        logging: false,
+        allowTaint: true,
+        useCORS: true,
+        windowWidth: 350,
+        windowHeight: 500,
+        onclone: (clonedDoc) => {
+          const clonedImages = clonedDoc.getElementsByTagName("img");
+          Array.from(clonedImages).forEach((img) => {
+            if (img.src) {
+              img.crossOrigin = "anonymous";
+            }
+          });
+        },
+      });
+
+      const backImgData = backCanvas.toDataURL("image/png");
+      backRoot.unmount();
+      document.body.removeChild(backDiv);
+
+      // Add front card to PDF (left side)
       pdf.addImage(
-        imgData,
+        frontImgData,
         "PNG",
-        0,
-        0,
-        imgWidth,
-        imgHeight,
+        startX,
+        centerY,
+        cardWidth,
+        cardHeight,
         undefined,
         "FAST",
       );
 
-      // Clean up
-      rootInstance.unmount();
-      document.body.removeChild(tempDiv);
+      // Add back card to PDF (right side)
+      pdf.addImage(
+        backImgData,
+        "PNG",
+        startX + cardWidth + 15,
+        centerY,
+        cardWidth,
+        cardHeight,
+        undefined,
+        "FAST",
+      );
 
-      pdf.save(`${volunteer.id}_${side}.pdf`);
+      pdf.save(`${volunteer.id}_both_sides.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("Failed to generate PDF. Please try again.");
@@ -483,20 +553,19 @@ export default function AdminDashboard() {
         selectedVolunteers.includes(v.id),
       );
 
-      // Generate PDF with 3 pairs of cards per page
+      // Generate PDF with 2 pairs of cards per page
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const pageWidth = 210; // A4 width in mm
       const cardWidth = 86; // ID card width
-      const cardHeight = 64; // Increased height to 64mm
-      const leftMargin = 15;
-      const topMargin = 15; // Reduced top margin
-      const verticalSpacing = 10; // Reduced spacing
-      const gapBetweenCards = 10;
+      const cardHeight = 74; // Increased for better proportions
+      const leftMargin = 12;
+      const topMargin = 25;
+      const verticalSpacing = 30;
+      const gapBetweenCards = 15;
 
       let cardsProcessed = 0;
 
@@ -513,16 +582,29 @@ export default function AdminDashboard() {
 
       const { createRoot } = await import("react-dom/client");
 
-      for (const volunteer of selected) {
-        // Calculate position on page
-        const row = Math.floor(cardsProcessed / 3);
+      // Helper function to wait for images
+      const waitForImages = (element: HTMLElement): Promise<void> => {
+        const images = Array.from(element.getElementsByTagName("img"));
+        const promises = images.map((img) => {
+          if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = () => resolve(null);
+            img.onerror = () => {
+              console.warn("Image failed to load:", img.src);
+              resolve(null);
+            };
+          });
+        });
+        return Promise.all(promises).then(() => {});
+      };
 
-        // Add new page if needed (2 rows per page since height increased)
+      for (const volunteer of selected) {
+        // Add new page if needed (2 rows per page)
         if (cardsProcessed > 0 && cardsProcessed % 2 === 0) {
           pdf.addPage();
         }
 
-        const rowOnPage = cardsProcessed % 2; // Changed to 2 rows per page
+        const rowOnPage = cardsProcessed % 2;
         const yOffset = topMargin + rowOnPage * (cardHeight + verticalSpacing);
 
         // Front side (left)
@@ -531,38 +613,43 @@ export default function AdminDashboard() {
         // Render front side
         const frontDiv = document.createElement("div");
         frontDiv.style.width = "350px";
-        frontDiv.style.height = "480px"; // Increased height
+        frontDiv.style.height = "500px";
         frontDiv.style.backgroundColor = "#ffffff";
+        frontDiv.style.overflow = "hidden";
         tempContainer.appendChild(frontDiv);
 
         const frontRoot = createRoot(frontDiv);
-        await new Promise<void>((resolve) => {
-          frontRoot.render(
-            <IDCardTemplate volunteer={volunteer} side="front" />,
-          );
-          setTimeout(resolve, 500);
-        });
+        frontRoot.render(<IDCardTemplate volunteer={volunteer} side="front" />);
+
+        await waitForImages(frontDiv);
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         const frontCanvas = await html2canvas(frontDiv, {
-          scale: 2.5, // Higher scale for better quality
+          scale: 2.5,
           backgroundColor: "#ffffff",
           logging: false,
-          allowTaint: false,
+          allowTaint: true,
           useCORS: true,
           windowWidth: 350,
-          windowHeight: 480,
+          windowHeight: 500,
+          onclone: (clonedDoc) => {
+            const clonedImages = clonedDoc.getElementsByTagName("img");
+            Array.from(clonedImages).forEach((img) => {
+              if (img.src) {
+                img.crossOrigin = "anonymous";
+              }
+            });
+          },
         });
 
         const frontImgData = frontCanvas.toDataURL("image/png");
-        const frontImgHeight =
-          (frontCanvas.height * cardWidth) / frontCanvas.width;
         pdf.addImage(
           frontImgData,
           "PNG",
           frontX,
           yOffset,
           cardWidth,
-          frontImgHeight,
+          cardHeight,
           undefined,
           "FAST",
         );
@@ -575,36 +662,43 @@ export default function AdminDashboard() {
 
         const backDiv = document.createElement("div");
         backDiv.style.width = "350px";
-        backDiv.style.height = "440px"; // Increased height
+        backDiv.style.height = "500px";
         backDiv.style.backgroundColor = "#ffffff";
+        backDiv.style.overflow = "hidden";
         tempContainer.appendChild(backDiv);
 
         const backRoot = createRoot(backDiv);
-        await new Promise<void>((resolve) => {
-          backRoot.render(<IDCardTemplate volunteer={volunteer} side="back" />);
-          setTimeout(resolve, 500);
-        });
+        backRoot.render(<IDCardTemplate volunteer={volunteer} side="back" />);
+
+        await waitForImages(backDiv);
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         const backCanvas = await html2canvas(backDiv, {
           scale: 2.5,
           backgroundColor: "#ffffff",
           logging: false,
-          allowTaint: false,
+          allowTaint: true,
           useCORS: true,
           windowWidth: 350,
-          windowHeight: 440,
+          windowHeight: 500,
+          onclone: (clonedDoc) => {
+            const clonedImages = clonedDoc.getElementsByTagName("img");
+            Array.from(clonedImages).forEach((img) => {
+              if (img.src) {
+                img.crossOrigin = "anonymous";
+              }
+            });
+          },
         });
 
         const backImgData = backCanvas.toDataURL("image/png");
-        const backImgHeight =
-          (backCanvas.height * cardWidth) / backCanvas.width;
         pdf.addImage(
           backImgData,
           "PNG",
           backX,
           yOffset,
           cardWidth,
-          backImgHeight,
+          cardHeight,
           undefined,
           "FAST",
         );
@@ -724,7 +818,8 @@ export default function AdminDashboard() {
             <div style={modalBodyStyle}>
               <p style={bulkInfoStyle}>
                 Selected {selectedVolunteers.length} volunteers. Cards will be
-                generated 3 per page (front and back side by side).
+                generated 2 per page (front and back side by side, 2 rows per
+                page = 4 cards total).
               </p>
 
               <div style={bulkPreviewStyle}>
@@ -733,7 +828,7 @@ export default function AdminDashboard() {
                   <div style={bulkCardBackStyle}>Back</div>
                 </div>
                 <p style={bulkCardLabelStyle}>
-                  Sample Layout - 3 cards per page (6 cards total - 3 front, 3
+                  Sample Layout - 2 cards per page (4 cards total - 2 front, 2
                   back)
                 </p>
               </div>
@@ -769,7 +864,7 @@ export default function AdminDashboard() {
         <div style={headerLeftStyle}>
           <div style={logoContainerStyle}>
             <img
-              src="/images/mfa-logo.png"
+              src="/mfa-logo.png"
               alt="MoFA"
               style={headerLogoStyle}
               onError={(e) => {
@@ -1028,6 +1123,16 @@ export default function AdminDashboard() {
                         title="Download Front"
                       >
                         <FilePdfOutlined />
+                      </button>
+                      <button
+                        style={certificateAntdButtonStyle}
+                        onClick={handleCertificateClick}
+                        title="Generate Certificate"
+                      >
+                        <TrophyOutlined style={certificateAntdIconStyle} />
+                        <span style={certificateAntdTextStyle}>
+                          Certificate
+                        </span>
                       </button>
                     </div>
                   </td>
@@ -1646,6 +1751,34 @@ const sideToggleButtonStyle: React.CSSProperties = {
   gap: 6,
 };
 
+// Add these styles after your existing styles
+const certificateAntdButtonStyle: React.CSSProperties = {
+  padding: "6px 12px",
+  borderRadius: "20px",
+  border: "none",
+  background: "linear-gradient(135deg, #faad14, #fadb14)", // Ant Design gold gradient
+  color: "#ffffff",
+  fontSize: "12px",
+  fontWeight: 600,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  transition: "all 0.2s ease",
+  boxShadow: "0 2px 8px rgba(250, 173, 20, 0.3)",
+  whiteSpace: "nowrap" as const,
+};
+
+const certificateAntdIconStyle: React.CSSProperties = {
+  fontSize: "14px",
+  color: "#ffffff",
+};
+
+const certificateAntdTextStyle: React.CSSProperties = {
+  fontSize: "11px",
+  letterSpacing: "0.3px",
+};
+
 const modalBodyStyle: React.CSSProperties = {
   padding: 24,
   maxHeight: "calc(90vh - 140px)",
@@ -1668,10 +1801,10 @@ const idPreviewContainerStyle: React.CSSProperties = {
   background: colors.offWhite,
 };
 
-// Update these styles in your styles section
+// ID Card Styles - All required styles defined here
 const idCardFrontStyle: React.CSSProperties = {
   width: "350px",
-  height: "480px", // Increased from 420px
+  height: "500px",
   border: "1px solid #ddd",
   borderRadius: "12px",
   overflow: "hidden",
@@ -1683,7 +1816,7 @@ const idCardFrontStyle: React.CSSProperties = {
 
 const idCardBackStyle: React.CSSProperties = {
   width: "350px",
-  height: "440px", // Increased from 380px
+  height: "500px",
   border: "1px solid #ddd",
   borderRadius: "12px",
   overflow: "hidden",
@@ -1693,8 +1826,36 @@ const idCardBackStyle: React.CSSProperties = {
   flexDirection: "column" as const,
 };
 
+const idCardHeaderContainerStyle: React.CSSProperties = {
+  height: "120px",
+  width: "100%",
+  overflow: "hidden",
+  backgroundColor: colors.deepBlue,
+};
+
+const idCardHeaderImageStyle: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover" as const,
+};
+
+const idCardHeaderFallbackStyle: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  background: colors.deepBlue,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const idCardHeaderFallbackText: React.CSSProperties = {
+  color: colors.richGold,
+  fontSize: "18px",
+  fontWeight: 700,
+};
+
 const idCardFrontContentStyle: React.CSSProperties = {
-  padding: "25px 20px", // Increased padding
+  padding: "25px 20px",
   display: "flex",
   flexDirection: "column" as const,
   alignItems: "center",
@@ -1703,37 +1864,56 @@ const idCardFrontContentStyle: React.CSSProperties = {
 };
 
 const idCardPhotoWrapperStyle: React.CSSProperties = {
-  marginBottom: "25px", // Increased margin
+  marginBottom: "25px",
   display: "flex",
   justifyContent: "center",
 };
 
 const idCardPhotoStyle: React.CSSProperties = {
-  width: "130px", // Slightly larger
-  height: "150px", // Slightly larger
+  width: "140px",
+  height: "160px",
   objectFit: "cover" as const,
   borderRadius: "8px",
   border: "2px solid #ddd",
   backgroundColor: "#f5f5f5",
 };
 
+const idCardPhotoFallbackStyle: React.CSSProperties = {
+  width: "140px",
+  height: "160px",
+  background: `linear-gradient(135deg, ${colors.deepBlue}, ${colors.richGold})`,
+  borderRadius: "8px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#ffffff",
+  fontSize: "36px",
+  fontWeight: 700,
+  border: "2px solid #ddd",
+};
+
+const idCardNameSectionStyle: React.CSSProperties = {
+  marginBottom: "0",
+  textAlign: "center" as const,
+};
+
 const idCardNameStyle: React.CSSProperties = {
   fontWeight: 700,
-  fontSize: "22px", // Larger font
-  margin: "0 0 6px",
+  fontSize: "24px",
+  margin: "0 0 8px",
   color: colors.deepBlue,
 };
 
 const idCardNameAmharicStyle: React.CSSProperties = {
-  fontSize: "18px", // Larger font
-  margin: "0 0 10px",
+  fontSize: "20px",
+  margin: "0 0 12px",
   color: colors.darkGray,
   fontFamily: "'Noto Sans Ethiopic', 'Nyala', sans-serif",
 };
 
 const idCardRoleStyle: React.CSSProperties = {
   fontWeight: 600,
-  fontSize: "20px", // Larger font
+  fontSize: "22px",
   margin: "0",
   color: colors.richGold,
 };
@@ -1742,20 +1922,20 @@ const idCardFrontFooterStyle: React.CSSProperties = {
   background: "#b91c1c",
   color: "#ffffff",
   textAlign: "center" as const,
-  padding: "14px 10px", // Increased padding
+  padding: "16px 10px",
   fontWeight: 700,
   width: "100%",
   marginTop: "auto",
 };
 
 const idCardFooterTextStyle: React.CSSProperties = {
-  fontSize: "18px", // Larger font
+  fontSize: "20px",
   letterSpacing: "1px",
   marginBottom: "6px",
 };
 
 const idCardFooterAmharicStyle: React.CSSProperties = {
-  fontSize: "16px", // Larger font
+  fontSize: "18px",
   fontFamily: "'Noto Sans Ethiopic', 'Nyala', sans-serif",
   letterSpacing: "0.5px",
 };
@@ -1764,16 +1944,16 @@ const idCardBackFooterBarStyle: React.CSSProperties = {
   background: "#b91c1c",
   color: "#ffffff",
   textAlign: "center" as const,
-  padding: "12px",
+  padding: "16px 10px",
   fontWeight: 700,
-  fontSize: "16px",
+  fontSize: "20px",
   letterSpacing: "1px",
   width: "100%",
   marginTop: "auto",
 };
 
 const idCardBackContentStyle: React.CSSProperties = {
-  padding: "20px",
+  padding: "25px 20px",
   fontSize: "14px",
   display: "flex",
   flexDirection: "column" as const,
@@ -1788,32 +1968,32 @@ const idCardBackTextContentStyle: React.CSSProperties = {
 };
 
 const idCardValidityStyle: React.CSSProperties = {
-  padding: "16px",
+  padding: "20px",
   background: colors.offWhite,
   borderRadius: "8px",
   border: `1px solid ${colors.softGray}`,
 };
 
 const idCardAmharicValidityStyle: React.CSSProperties = {
-  marginBottom: "12px",
+  marginBottom: "15px",
 };
 
 const idCardAmharicTextStyle: React.CSSProperties = {
   fontFamily: "'Noto Sans Ethiopic', 'Nyala', sans-serif",
-  fontSize: "14px",
-  margin: "4px 0",
+  fontSize: "16px",
+  margin: "6px 0",
   color: colors.deepBlue,
   fontWeight: 500,
 };
 
 const idCardEnglishValidityStyle: React.CSSProperties = {
   borderTop: `1px dashed ${colors.mediumGray}`,
-  paddingTop: "12px",
+  paddingTop: "15px",
 };
 
 const idCardEnglishTextStyle: React.CSSProperties = {
-  fontSize: "13px",
-  margin: "4px 0",
+  fontSize: "14px",
+  margin: "6px 0",
   color: colors.darkGray,
 };
 
